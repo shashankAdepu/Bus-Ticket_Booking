@@ -1,0 +1,354 @@
+<!-- Header -->
+<div class="logout">
+  <b class="user">Dear {{userName}},</b>
+  <!-- <a style="margin-right: 25px;" (click)="UpdateBus()" class="btn btn-warning" role="button">update bus</a> -->
+  <!-- <a style="margin-right: 25px;" (click)="AddNewBus()" class="btn btn-warning" role="button">Add bus</a> -->
+  <a style="margin-right: 35px;" href="/home" (click)="onLogout()" class="btn btn-warning" role="button">Log out</a>
+</div>
+
+<!-- Dashboard -->
+<mat-tab-group [(selectedIndex)]="selectedIndex">
+
+  <mat-tab label="Plan Your Travel">
+    <div class="tabBg">
+      <form [formGroup]="busesFilterForm" (ngSubmit)="searchBuses()" novalidate>
+        <div class="container">
+          <div>
+            <mat-form-field class="mat-form-field--inline" appearance="fill">
+              <mat-label>From</mat-label>
+              <mat-select [disabled]="showBusesList" (selectionChange)="fromCitySelected($event)"
+                formControlName="from">
+                <mat-option *ngFor="let city of fromCities" [value]="city">
+                  {{city}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <p class="form-text text-muted"
+              *ngIf="busesFilterForm.controls.from.touched && busesFilterForm.controls.from.errors?.required"
+              class="alert alert-danger alertPlan">Select city.</p>
+          </div>
+
+          <div>
+            <mat-form-field class="mat-form-field--inline" appearance="fill">
+              <mat-label>To</mat-label>
+              <mat-select [disabled]="showBusesList" (selectionChange)="toCitySelected($event)" formControlName="to">
+                <mat-option *ngFor="let city of toCities" [value]="city">
+                  {{city}}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <p class="form-text text-muted"
+              *ngIf="busesFilterForm.controls.to.touched && busesFilterForm.controls.to.errors?.required"
+              class="alert alert-danger alertPlan">Select city.</p>
+          </div>
+
+          <div>
+            <mat-form-field class="mat-form-field--inline" appearance="fill">
+              <mat-label>Choose a date</mat-label>
+              <!-- [min]="minDate" -->
+              <input [disabled]="showBusesList" [min]="minPlanDate" matInput [matDatepicker]="picker"
+                formControlName="date">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+            <p class="form-text text-muted"
+              *ngIf="busesFilterForm.controls.date.touched && busesFilterForm.controls.date.errors?.required"
+              class="alert alert-danger alertPlan">Date is Required.</p>
+          </div>
+
+          <button class="btn btn-success" style="height: 40px; margin-left: 50px;" (click)="getBuses()"
+            [disabled]="!busesFilterForm.valid">Plan Trip</button>
+        </div>
+      </form>
+      <div *ngIf="showBusesList" style="color:blue;margin-top: 5px; margin-left: 65px ; font-weight: bold;">
+        <a class="pointer" (click)="editFilters()">Edit</a><span> | </span><a class="pointer"
+          (click)="ClearFilters()">Clear</a>
+      </div>
+
+      <!-- <button class="btn btn-primary button"  (click)="getBuses()" [disabled]="!planYourTrip().valid">Get Buses</button> -->
+      <h2 *ngIf="showBusesList" style="margin-top: 30px; margin-left: 30px;">Select Bus</h2>
+      <table *ngIf="showBusesList" style="width: 95%; margin-top: 10px; margin-left: 30px; text-align: center;"
+        class="table table-bordered table-hover">
+        <thead style="background-color: #28a745; color: white; height: 40vh;">
+          <tr>
+            <th>Bus Name</th>
+            <th>Bus Type</th>
+            <th>Date</th>
+            <th>Arrival Time</th>
+            <th>Departure Time</th>
+            <th>Available</th>
+            <th>Fare</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody style="background-color:rgba(255, 255, 255, 0.7);">
+          <tr *ngFor='let data of busesData'>
+            <td>{{data.bus_name}}</td>
+            <td>{{data.bus_type}}</td>
+            <td>{{data.date}}</td>
+            <td>{{data.arrival_time}}</td>
+            <td>{{data.departure_time}}</td>
+            <td>{{data.available_seats}}</td>
+            <td>{{data.fare}}</td>
+            <td><button class="btn btn-success" (click)="onBusSelected(data)">View Seats</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <h5 style="color: red; margin-left: 300px;" *ngIf="showBusesList && busesData && busesData.length === 0">No buses
+        are available on selected date for the specified route</h5>
+    </div>
+  </mat-tab>
+
+  <!-- Select Your Seats -->
+  <mat-tab label="Select Your Seats" *ngIf="selectedIndexDummy>0">
+    <!-- to show seat styles -->
+    <div class="seatIdentification">
+      <img style="filter: brightness(0.50);" width=20px height=20px src="./assets/images/busSeat.png">
+      <span> -- Booked </span><br>
+      <img width=20px height=20px src="./assets/images/busSeat.png">
+      <span> -- Selected </span><br>
+      <img style="filter: opacity(50%);" width=20px height=20px src="./assets/images/busSeat.png">
+      <span> -- Available </span>
+    </div>
+
+
+    <div class="selectYourSeatsContainer row">
+      <!-- seats view and selection -->
+      <div style="padding:10px" class="seatsViewContainer selectYourSeatsContainer">
+        <!-- left side seats -->
+        <div style="margin-right: 20px;" class="selectYourSeatsContainer">
+          <div style="display: inline-block" *ngFor="let seat of leftSideSeats;let indexOfelement=index;">
+            <img *ngIf="seat.booked" style="filter: brightness(0.50);" width=20px height=20px
+              src="./assets/images/busSeat.png" (click)="selectOrUnselectSeats('left', seat.id)">
+            <img *ngIf="seat.selected" width=20px height=20px src="./assets/images/busSeat.png"
+              (click)="selectOrUnselectSeats('left', seat.id)">
+            <img *ngIf="!seat.selected && ! seat.booked" style="filter: opacity(50%);" width=20px height=20px
+              src="./assets/images/busSeat.png" (click)="selectOrUnselectSeats('left', seat.id)">
+          </div>
+        </div>
+        <!-- right side seats -->
+        <div style="margin-left: 20px;" class="selectYourSeatsContainer">
+          <div style="display: inline-block" *ngFor="let seat of rightSideSeats;let indexOfelement=index;">
+            <img *ngIf="seat.booked" style="filter: brightness(0.50);" width=20px height=20px
+              src="./assets/images/busSeat.png" (click)="selectOrUnselectSeats('right', seat.id)">
+            <img *ngIf="seat.selected" width=20px height=20px src="./assets/images/busSeat.png"
+              (click)="selectOrUnselectSeats('right', seat.id)">
+            <img *ngIf="!seat.selected && ! seat.booked" style="filter: opacity(50%);" width=20px height=20px
+              src="./assets/images/busSeat.png" (click)="selectOrUnselectSeats('right', seat.id)">
+          </div>
+        </div>
+      </div>
+
+      <!-- bus details view -->
+      <div style="background-color:rgba(255, 255, 255, 0.7); width:80%; padding-left:70px; border-radius: 25px;">
+        <h1 style="margin-left: 20px; margin-bottom: 10px;">Booking Summary</h1>
+        <div class="seatDetails">
+          <p>From:</p>
+          <b>{{selectedBusDetails.from}}</b>
+        </div>
+        <div class="seatDetails">
+          <p>To:</p>
+          <b>{{selectedBusDetails.to}}</b>
+        </div>
+        <div class="seatDetails">
+          <p>Date:</p>
+          <b>{{selectedBusDetails.date}}</b>
+        </div>
+        <div class="seatDetails">
+          <p>Bus Type:</p>
+          <b>{{selectedBusDetails.bus_type}}</b>
+        </div>
+        <div class="seatDetails">
+          <p>Seat No:</p>
+          <p><b *ngFor="let number of selectedSeatNumbers">{{number}},</b></p>
+        </div>
+
+        <form [formGroup]="demoForm">
+          <div formArrayName="demoArray" class="form-inline seatDetails" style="margin-bottom: 10px;"
+            *ngFor="let arrayItem of arrayItems; let i=index">
+            <div>
+              <input class="form-control" style="width: 70%;" type="text" [formControlName]="i" placeholder="Name">
+            </div>
+
+            <div style="color: black; display: inline-flex;">
+              <label style="margin-right: 15%; ">
+                <input type="radio" value="Male" [name]="i+''" [formControlName]="i+''" checked><b>Male</b>
+              </label>
+              <label>
+                <input type="radio" value="Female" [name]="i+''" [formControlName]="i+''"><b>Female</b>
+              </label>
+            </div>
+          </div>
+        </form>
+
+        <div class="seatDetails">
+          <p>Total Seats:</p>
+          <b>{{selectedBusDetails.total_seats}}</b>
+        </div>
+        <div class="seatDetails">
+          <p>Fare:</p>
+          <b>{{fareWithOutTax}}/-</b>
+        </div>
+        <div class="seatDetails">
+          <p>Service Tax:</p>
+          <b>{{serviceCharge}}/-</b>
+        </div>
+        <div class="seatDetails">
+          <p>Total Charges:</p>
+          <b>{{fareWithTax}}/-</b>
+        </div>
+        <p class="alert alert-danger" style="width: 80%; padding-left: 50px;" *ngIf="!demoForm.valid"> Please enter all
+          passenger names</p>
+        <button style="margin-left: 80px;margin-top: 10px;" class="btn btn-success" (click)="continueToPayment()"
+          [disabled]="!(selectedSeatNumbers.length > 0 && demoForm.valid)">Continue to Payment</button>
+      </div>
+    </div>
+
+  </mat-tab>
+
+
+  <mat-tab label="Payments" *ngIf="selectedIndexDummy>1">
+    <div class="row">
+      <div class="pay">
+        <div
+          style="background-color: green; color: white; display: inline-flex; width:100%; border-radius: 15px; margin-bottom: 10px;">
+          <p style="margin-right: 80px; margin-left: 20px;margin-top: 12px;">Amount Rs.{{fareWithTax}}/-</p>
+          <p style="margin-top: 12px;">Transaction ID: {{TxID}}</p>
+        </div>
+        <form class="form-horizontal" [formGroup]="paymentForm" (ngSubmit)="onSubmit()" novalidate>
+
+          <div style="color: black; margin-bottom: 10px; margin-left: 35px;">
+            <label style="margin-right: 30%;" class="radio-inline">
+              <input type="radio" value="Visa" name="typeOfCard" formControlName="typeOfCard" checked> Visa
+            </label>
+            <label class="radio-inline">
+              <input type="radio" value="Master Card" name="typeOfCard" formControlName="typeOfCard"> MasterCard
+            </label>
+          </div>
+
+          <div class="form-inline down">
+            <label>Card Number</label>
+            <input class="form-control number" type="number" formControlName="cardNumber" placeholder="Card Number"
+              [ngClass]="{ 'is-invalid': paymentForm.controls.cardNumber.errors  && (paymentForm.controls.cardNumber.dirty || paymentForm.controls.cardNumber.touched)}">
+          </div>
+          <div
+            *ngIf="!paymentForm.controls.cardNumber.valid && (paymentForm.controls.cardNumber.dirty || paymentForm.controls.cardNumber.touched)"
+            class="invalid-feedback">
+            <div *ngIf="paymentForm.controls.cardNumber.errors" class="alert alert-danger alertPay">Invalid Card Number.
+            </div>
+          </div>
+
+          <div class="form-inline down">
+            <label>Name on Card</label>
+            <input class="form-control name" type="text" formControlName="nameOnCard" placeholder="Name"
+              [ngClass]="{ 'is-invalid': (paymentForm.controls.nameOnCard.dirty || paymentForm.controls.nameOnCard.touched) && paymentForm.controls.nameOnCard.errors }">
+          </div>
+          <div
+            *ngIf="!paymentForm.controls.nameOnCard.valid && (paymentForm.controls.nameOnCard.dirty || paymentForm.controls.nameOnCard.touched)"
+            class="invalid-feedback">
+            <div *ngIf="paymentForm.controls.nameOnCard.errors" class="alert alert-danger alertPay">Invalid Cardholder
+              Name.</div>
+          </div>
+
+          <!-- <div *ngIf="!paymentForm.controls.nameOnCard.valid && (paymentForm.controls.nameOnCard.dirty || paymentForm.controls.nameOnCard.touched)" class="invalid-feedback">
+          <div *ngIf="paymentForm.controls.nameOnCard.errors" class="alert alert-danger">Invalid Cardholder Name.</div>
+        </div> -->
+
+
+          <div class="form-inline down">
+            <label>CVV</label>
+            <input class="form-control cvv" type="number" formControlName="cardCVVNumber" placeholder="CVV"
+              [ngClass]="{ 'is-invalid': paymentForm.controls.cardCVVNumber.errors && (paymentForm.controls.cardCVVNumber.dirty || paymentForm.controls.cardCVVNumber.touched) }">
+          </div>
+          <div
+            *ngIf="!paymentForm.controls.cardCVVNumber.valid && (paymentForm.controls.cardCVVNumber.dirty || paymentForm.controls.cardCVVNumber.touched)"
+            class="invalid-feedback">
+            <div *ngIf="paymentForm.controls.cardCVVNumber.errors" class="alert alert-danger alertPay">Invalid CVV
+              Number.</div>
+          </div>
+
+
+          <div class="form-inline expiry">
+            <label>Date of Expiration</label>
+            <input class="form-control month" style="width: 100px;margin-left:40px;" type="number" [min]="minCardDate"
+              [max]="maxCardDate" formControlName="expirationMonth" placeholder="mm"
+              [ngClass]="{ 'is-invalid': !paymentForm.controls.expirationMonth.valid && (paymentForm.controls.expirationMonth.dirty || paymentForm.controls.expirationMonth.touched) }">
+            <input class="form-control year" style="width: 100px;margin-left: 20px;" type="number" [min]="minYear"
+              formControlName="expirationYear" placeholder="yyyy"
+              [ngClass]="{ 'is-invalid': paymentForm.controls.expirationYear.errors && (paymentForm.controls.expirationYear.dirty || paymentForm.controls.expirationYear.touched) }">
+          </div>
+          <div
+            *ngIf="( !paymentForm.controls.expirationMonth.valid && (paymentForm.controls.expirationMonth.dirty || paymentForm.controls.expirationMonth.touched) ) || ( !paymentForm.controls.expirationYear.valid && (paymentForm.controls.expirationYear.dirty || paymentForm.controls.expirationYear.touched))"
+            class="invalid-feedback">
+            <div *ngIf="paymentForm.controls.expirationMonth.errors || paymentForm.controls.expirationYear.errors"
+              class="alert alert-danger alertPay">Invalid Date of Expiration.</div>
+          </div>
+
+          <div class="form-inline down">
+            <button type="submit" class="btn btn-danger" (click)="cancelPayment()">Cancel</button>
+            <button type="submit" class="btn btn-success" (click)="onClickPayNow()" [disabled]="!(selectedSeatNumbers.length > 0 && paymentForm.valid)">Pay
+              Now</button>
+          </div>
+          <h3 class="center-block text-center" style="margin-top: 80px;">{{displayMessage}}</h3>
+        </form>
+      </div>
+    </div>
+  </mat-tab>
+
+  <mat-tab label="Ticket Confirmation" *ngIf="selectedIndexDummy>2">
+    <div class="row">
+      <div class="card"
+        style="width: 18rem; margin-left: 470px; background-color:rgba(255, 255, 255, 0.7); height: 500px; margin-top: 30px; border-radius: 20px;">
+        <img class="card-img-top" style="border-radius: 20px 20px 0 0;"
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJw0MgqIw6IamppRpbqBr4I42qLpvda3cWMg&usqp=CAU"
+          alt="Card image cap">
+        <div class="card-body">
+          <h5 class="card-title" style="text-align: center;">Ticket Details</h5>
+          <p class="card-text">Customer Name: {{userName}}</p>
+          <p class="card-text">{{selectedBusDetails.from}} - {{selectedBusDetails.to}}</p>
+          <span class="card-text">Seat Number: </span><span
+            *ngFor="let number of selectedSeatNumbersForPrintingOnTicket">{{number}},</span>
+          <p class="card-text" style="margin-top: 10px;">Amount paid: {{fareWithTaxForPrintingOnTicket}}</p>
+        </div>
+        <div class="card-body">
+          <button type="submit" style="margin-top: 15px; margin-left: 35%;" class="btn btn-success">Print</button>
+          <p style="color: red;margin-top: 10px;">** Please Bring this copy to ticket counter to collect your ticket **
+          </p>
+        </div>
+      </div>
+    </div>
+  </mat-tab>
+</mat-tab-group>
+
+<!-- Footer -->
+<footer class="text-center text-white">
+  <!-- Copyright -->
+  <div class="text-center p-3"
+    style="background-image:url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQv1RlVuFFrWkLmcQRwlk1qUFIeYPQt3dNmsw&usqp=CAU'); background-size: cover;">
+    <section>
+      <!-- Facebook -->
+      <a class="btn btn-primary btn-floating m-1" style="background-color: #3b5998;" href="#!" role="button"><i
+          class="fab fa-facebook-f"></i></a>
+
+      <!-- Twitter -->
+      <a class="btn btn-primary btn-floating m-1" style="background-color: #55acee;" href="#!" role="button"><i
+          class="fab fa-twitter"></i></a>
+
+      <!-- Google -->
+      <a class="btn btn-primary btn-floating m-1" style="background-color: #dd4b39;" href="#!" role="button"><i
+          class="fab fa-google"></i></a>
+
+      <!-- Instagram -->
+      <a class="btn btn-primary btn-floating m-1" style="background-color: #ac2bac;" href="#!" role="button"><i
+          class="fab fa-instagram"></i></a>
+
+      <!-- Linkedin -->
+      <a class="btn btn-primary btn-floating m-1" style="background-color: #0082ca;" href="#!" role="button"><i
+          class="fab fa-linkedin-in"></i></a>
+    </section>
+
+    © 2020 Copyright:
+    <a class="text-white" href="#">AK_Travels.com</a>
+  </div>
+  <!-- Copyright -->
+</footer>
